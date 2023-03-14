@@ -60,7 +60,7 @@ export const App = () => {
     setQuery(query);
     setPhotos([]);
     setPage(1);
-    // setError(null);
+    setError(null);
   };
 
   const onLoadMorePhotos = () => {
