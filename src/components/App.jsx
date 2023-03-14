@@ -35,11 +35,10 @@ export const App = () => {
         const { hits, totalHits } = await requestPhotos(query, page, perPage);
 
         if (hits.length === 0) {
-          setError({
-            error:
-              'Sorry, there are no images matching your search query. Please try again 🔎.',
-            status: 'rejected',
-          });
+          setError(
+            'Sorry, there are no images matching your search query. Please try again 🔎.'
+          );
+          setStatus('rejected');
         } else {
           setPhotos(prevPhotos => [...prevPhotos, ...hits]);
           setTotalHits(totalHits);
@@ -61,7 +60,7 @@ export const App = () => {
     setQuery(query);
     setPhotos([]);
     setPage(1);
-    setError(null);
+    // setError(null);
   };
 
   const onLoadMorePhotos = () => {
