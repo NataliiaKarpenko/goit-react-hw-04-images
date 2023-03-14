@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { WelcomeView } from './WelcomeView/WelcomeView';
@@ -11,161 +11,105 @@ import { Modal } from './Modal/Modal';
 import { LoadMoreBtn } from './LoadMoreBtn/LoadMoreBtn';
 import { Loader } from './Loader/Loader';
 
-export class App extends Component {
-  state = {
-    query: '',
-    photos: [],
-    page: 1,
-    perPage: 12,
-    totalHits: 0,
-    largeImageURL: '',
-    showModal: false,
-    isLoading: false,
-    status: 'idle',
-    error: null,
-  };
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [photos, setPhotos] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalHits, setTotalHits] = useState(0);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState('idle');
+  const [error, setError] = useState(null);
+  const perPage = 12;
 
-  componentDidUpdate(_, prevState) {
-    const prevQuery = prevState.query;
-    const prevPage = prevState.page;
-
-    // if (prevQuery !== this.state.query) {
-    //   this.setState({ photos: [], page: 1 });
-    //   this.fetchPhotos();
-    // }
-    // if (prevPage !== this.state.page) {
-    //   this.fetchPhotos();
-    // }
-    if (prevQuery !== this.state.query || prevPage !== this.state.page) {
-      this.fetchPhotos();
-    }
-  }
-
-  fetchPhotos = async () => {
-    const { query, page, perPage } = this.state;
-
+  useEffect(() => {
     if (!query) {
-      this.setState({ status: 'idle' });
       return;
     }
 
-    this.onToggleLoader();
+    const fetchPhotos = async () => {
+      setIsLoading(true);
 
-    try {
-      const { hits, totalHits } = await requestPhotos(query, page, perPage);
+      try {
+        const { hits, totalHits } = await requestPhotos(query, page, perPage);
 
-      if (hits.length === 0) {
-        this.setState({
-          error:
-            'Sorry, there are no images matching your search query. Please try again 🔎.',
-          status: 'rejected',
-        });
-      } else {
-        this.setState(({ photos }) => ({
-          photos: [...photos, ...hits],
-          totalHits,
-          status: 'resolved',
-        }));
+        if (hits.length === 0) {
+          setError({
+            error:
+              'Sorry, there are no images matching your search query. Please try again 🔎.',
+            status: 'rejected',
+          });
+        } else {
+          setPhotos(prevPhotos => [...prevPhotos, ...hits]);
+          setTotalHits(totalHits);
+          setStatus('resolved');
+        }
+      } catch (error) {
+        console.log(error);
+        setError(error.message);
+        setStatus('rejected');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.log(error);
-      this.setState({
-        error: error.message,
-        status: 'rejected',
-      });
-    } finally {
-      this.onToggleLoader();
-    }
+    };
+
+    fetchPhotos();
+  }, [query, page]);
+
+  const onFormSubmit = query => {
+    setQuery(query);
+    setPhotos([]);
+    setPage(1);
+    setError(null);
   };
 
-  onFormSubmit = query => {
-    this.setState({
-      query,
-      photos: [],
-      page: 1,
-      perPage: 12,
-      totalHits: 0,
-      largeImageURL: '',
-      showModal: false,
-      isLoading: false,
-    });
+  const onLoadMorePhotos = () => {
+    setPage(prevPage => prevPage + 1);
+
+    onScrollPage();
   };
 
-  // onQueryChange = query => {
-  //   this.setState({ query });
-  // };
-
-  onLoadMorePhotos = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
-
-    this.onScrollPage();
+  const onOpenModal = largeImageURL => {
+    setShowModal(true);
+    setLargeImageURL(largeImageURL);
   };
 
-  onOpenModal = largeImageURL => {
-    this.setState({ largeImageURL, showModal: true });
+  const onCloseModal = () => {
+    setShowModal(false);
   };
 
-  onCloseModal = () => {
-    this.setState({
-      showModal: false,
-    });
-  };
-
-  onToggleLoader = () => {
-    this.setState({ isLoading: !this.state.isLoading });
-  };
-
-  onScrollPage = () => {
+  const onScrollPage = () => {
     // setTimeout(() => {
     window.scrollBy({
       top: document.documentElement.clientHeight - 160,
-
       behavior: 'smooth',
     });
     // }, 1000);
   };
 
-  render() {
-    const {
-      photos,
-      page,
-      perPage,
-      largeImageURL,
-      totalHits,
-      status,
-      showModal,
-      isLoading,
-      error,
-    } = this.state;
-    return (
-      <>
-        <SearchBar
-          onFormSubmit={this.onFormSubmit}
-          onQueryChange={this.onQueryChange}
-        />
+  return (
+    <>
+      <SearchBar onFormSubmit={onFormSubmit} />
 
-        <ToastContainer autoClose={3000} theme={'colored'} />
-        {status === 'idle' && <WelcomeView />}
+      <ToastContainer autoClose={3000} theme={'colored'} />
+      {status === 'idle' && <WelcomeView />}
 
-        {status === 'rejected' && <ErrorView message={error} />}
+      {status === 'rejected' && <ErrorView message={error} />}
 
-        {status === 'resolved' && (
-          <ImageGallery photos={photos} onOpenModal={this.onOpenModal} />
-        )}
+      {status === 'resolved' && (
+        <ImageGallery photos={photos} onOpenModal={onOpenModal} />
+      )}
 
-        {isLoading && <Loader />}
+      {isLoading && <Loader />}
 
-        {showModal && (
-          <Modal
-            largeImageURL={largeImageURL}
-            onCloseModal={this.onCloseModal}
-          />
-        )}
+      {showModal && (
+        <Modal largeImageURL={largeImageURL} onCloseModal={onCloseModal} />
+      )}
 
-        {totalHits - page * perPage > 0 && photos.length !== 0 && (
-          <LoadMoreBtn onLoadMorePhotos={this.onLoadMorePhotos} />
-        )}
-      </>
-    );
-  }
-}
+      {totalHits - page * perPage > 0 && photos.length !== 0 && (
+        <LoadMoreBtn onLoadMorePhotos={onLoadMorePhotos} />
+      )}
+    </>
+  );
+};

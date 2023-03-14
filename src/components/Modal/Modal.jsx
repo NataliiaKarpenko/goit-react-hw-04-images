@@ -1,50 +1,40 @@
 import PropTypes from 'prop-types';
+import { useEffect } from 'react';
 
 import { ModalStyled } from './Modal.styled';
-import { createPortal } from 'react-dom';
-import { Component } from 'react';
 
-const modalRoot = document.querySelector('#modal-root');
+export const Modal = ({ largeImageURL, onCloseModal }) => {
+  useEffect(() => {
+    const handleKeyDown = e => {
+      if (e.code === 'Escape') {
+        onCloseModal();
+      }
+    };
 
-export class Modal extends Component {
-  componentDidMount() {
-    window.addEventListener('keydown', this.handleKeyDown);
-  }
+    window.addEventListener('keydown', handleKeyDown);
 
-  componentWillUnmount() {
-    window.removeEventListener('keydown', this.handleKeyDown);
-  }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onCloseModal]);
 
-  handleKeyDown = e => {
-    if (e.code === 'Escape') {
-      this.props.onCloseModal();
-    }
-  };
-
-  handleBackdropClick = e => {
+  const handleBackdropClick = e => {
     if (e.currentTarget === e.target) {
-      this.props.onCloseModal();
+      onCloseModal();
     }
   };
 
-  render() {
-    return createPortal(
-      <ModalStyled onClick={this.handleBackdropClick}>
-        <button
-          type="button"
-          className="backdropBtn"
-          onClick={this.props.onCloseModal}
-        >
-          ×
-        </button>
-        <div className="modal">
-          <img src={this.props.largeImageURL} alt="" />
-        </div>
-      </ModalStyled>,
-      modalRoot
-    );
-  }
-}
+  return (
+    <ModalStyled onClick={handleBackdropClick}>
+      <button type="button" className="backdropBtn" onClick={onCloseModal}>
+        ×
+      </button>
+      <div className="modal">
+        <img src={largeImageURL} alt="" />
+      </div>
+    </ModalStyled>
+  );
+};
 
 Modal.propTypes = {
   largeImageURL: PropTypes.string.isRequired,
